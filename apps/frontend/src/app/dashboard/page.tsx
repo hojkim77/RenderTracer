@@ -10,10 +10,8 @@ export default function DashboardPage() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    // 로딩이 완료되고 사용자가 없을 때만 리다이렉트
-    // loading이 true인 동안은 리다이렉트하지 않음 (인증 확인 중)
     if (loading) {
-      return; // 아직 로딩 중이면 리다이렉트하지 않음
+      return;
     }
     
     if (!user) {
@@ -40,7 +38,7 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    return null; // 리다이렉트 중
+    return null;
   }
 
   return (

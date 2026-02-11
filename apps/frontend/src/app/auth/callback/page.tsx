@@ -22,7 +22,6 @@ export default function AuthCallbackPage() {
 
       if (code) {
         try {
-          // OAuth 코드를 세션으로 교환
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
           if (exchangeError || !data.session) {
@@ -31,17 +30,14 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          // 토큰 저장 (AccessToken: 메모리, RefreshToken: localStorage)
           saveTokensFromSession(data.session);
 
-          // 대시보드로 리다이렉트
           router.push('/dashboard');
         } catch (err) {
           console.error('콜백 처리 실패:', err);
           router.push('/login?error=auth_failed');
         }
       } else {
-        // 코드가 없으면 로그인 페이지로
         router.push('/login');
       }
     }

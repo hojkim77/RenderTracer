@@ -10,7 +10,6 @@ export default function LoginPage() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    // 이미 로그인되어 있으면 대시보드로 리다이렉트
     if (!loading && user) {
       router.push('/dashboard');
     }
@@ -36,7 +35,7 @@ export default function LoginPage() {
   }
 
   if (user) {
-    return null; // 리다이렉트 중
+    return null;
   }
 
   return (
