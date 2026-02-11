@@ -114,8 +114,28 @@ function extractComponentNode(
 
   // Props 추출
   const props: string[] = [];
-  if (node.params.length > 0 && t.isIdentifier(node.params[0])) {
-    // TODO: Props 타입에서 추출
+  if (node.params.length > 0) {
+    const firstParam = node.params[0];
+    if (t.isIdentifier(firstParam)) {
+      // 단순 identifier인 경우
+      props.push(firstParam.name);
+    } else if (t.isObjectPattern(firstParam)) {
+      // 객체 구조 분해인 경우: { prop1, prop2 } = props
+      firstParam.properties.forEach((prop) => {
+        if (t.isObjectProperty(prop) && t.isIdentifier(prop.key)) {
+          props.push(prop.key.name);
+        } else if (t.isRestElement(prop) && t.isIdentifier(prop.argument)) {
+          props.push(prop.argument.name);
+        }
+      });
+    } else if (t.isArrayPattern(firstParam)) {
+      // 배열 구조 분해인 경우: [item1, item2] = props
+      firstParam.elements.forEach((elem) => {
+        if (elem && t.isIdentifier(elem)) {
+          props.push(elem.name);
+        }
+      });
+    }
   }
 
   // Hooks 추출
@@ -149,11 +169,32 @@ function extractComponentNode(
       if (t.isIdentifier(callee)) {
         // Hooks 체크
         if (callee.name === 'useState') {
-          // TODO: state 변수명 추출
+          // useState의 첫 번째 인자에서 초기값 타입 추론은 어렵지만,
+          // 변수명은 destructuring에서 추출 가능
+          const parent = path.parentPath;
+          if (parent && t.isVariableDeclarator(parent.node)) {
+            if (t.isIdentifier(parent.node.id)) {
+              hooks.useState.push(parent.node.id.name);
+            }
+          }
         } else if (callee.name === 'useReducer') {
-          // TODO: reducer 이름 추출
+          // useReducer의 첫 번째 인자에서 reducer 함수명 추출 시도
+          if (path.node.arguments.length > 0) {
+            const reducerArg = path.node.arguments[0];
+            if (t.isIdentifier(reducerArg)) {
+              hooks.useReducer.push(reducerArg.name);
+            }
+          }
         } else if (callee.name === 'useContext') {
-          // TODO: context 이름 추출
+          // useContext의 인자에서 Context 이름 추출
+          if (path.node.arguments.length > 0) {
+            const contextArg = path.node.arguments[0];
+            if (t.isIdentifier(contextArg)) {
+              hooks.useContext.push(contextArg.name);
+            } else if (t.isMemberExpression(contextArg) && t.isIdentifier(contextArg.property)) {
+              hooks.useContext.push(contextArg.property.name);
+            }
+          }
         } else if (callee.name === 'useCallback') {
           hasUseCallback = true;
         } else if (callee.name === 'useMemo') {

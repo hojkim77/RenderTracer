@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
-import type { User } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
+import type { User, SupabaseClient } from '@supabase/supabase-js';
+import { createSupabaseClient } from '../lib/supabase';
 
 type Env = {
   Bindings: {
@@ -9,6 +9,7 @@ type Env = {
   };
   Variables: {
     user: User;
+    supabase: SupabaseClient;
   };
 };
 
@@ -27,7 +28,7 @@ export async function authMiddleware(c: Context<Env>, next: Next) {
     return c.json({ error: 'Server configuration error' }, 500);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -36,8 +37,9 @@ export async function authMiddleware(c: Context<Env>, next: Next) {
       return c.json({ error: 'Invalid token' }, 401);
     }
 
-    // 사용자 정보를 context에 저장
+    // 사용자 정보와 Supabase 클라이언트를 context에 저장
     c.set('user', user);
+    c.set('supabase', supabase);
     await next();
   } catch (error) {
     return c.json({ error: 'Authentication failed' }, 401);

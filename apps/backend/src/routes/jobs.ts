@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
-import type { User } from '@supabase/supabase-js';
+import type { User, SupabaseClient } from '@supabase/supabase-js';
 import { getAnalysisJob } from '../services/job-service';
 
 type Env = {
   Variables: {
     user: User;
+    supabase: SupabaseClient;
   };
 };
 
@@ -14,12 +15,13 @@ jobsRouter.get('/:jobId', async (c) => {
   try {
     const jobId = c.req.param('jobId');
     const user = c.get('user');
+    const supabase = c.get('supabase');
 
-    if (!user) {
+    if (!user || !supabase) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const job = await getAnalysisJob(jobId, user.id);
+    const job = await getAnalysisJob(supabase, jobId, user.id);
 
     if (!job) {
       return c.json({ error: 'Job not found' }, 404);

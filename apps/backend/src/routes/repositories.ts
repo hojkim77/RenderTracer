@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
-import type { User } from '@supabase/supabase-js';
+import type { User, SupabaseClient } from '@supabase/supabase-js';
 import { getGitHubRepositories } from '../services/github-service';
 
 type Env = {
   Variables: {
     user: User;
+    supabase: SupabaseClient;
   };
 };
 
@@ -18,9 +19,12 @@ repositoriesRouter.get('/', async (c) => {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    // GitHub 토큰은 Supabase DB에서 가져와야 함
-    // 여기서는 예시로 구현
-    const repositories = await getGitHubRepositories(user.id);
+    const supabase = c.get('supabase');
+    if (!supabase) {
+      return c.json({ error: 'Server configuration error' }, 500);
+    }
+
+    const repositories = await getGitHubRepositories(supabase, user.id);
 
     return c.json(repositories);
   } catch (error) {

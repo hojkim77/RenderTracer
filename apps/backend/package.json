@@ -15,11 +15,14 @@
     "@babel/traverse": "^7.23.6",
     "@babel/types": "^7.23.6",
     "@octokit/rest": "^20.0.2",
-    "@react-visual-rendering-tracer/shared-types": "workspace:*"
+    "jszip": "^3.10.1",
+    "@react-visual-rendering-tracer/shared-types": "workspace:*",
+    "@react-visual-rendering-tracer/ast-analyzer": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240208.0",
     "@types/node": "^20.11.0",
+    "@types/jszip": "^3.4.1",
     "typescript": "^5.3.0",
     "wrangler": "^3.19.0"
   }
