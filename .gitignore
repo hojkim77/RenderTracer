@@ -51,3 +51,5 @@ dist
 # Supabase
 .supabase
 
+#docs
+docs/
