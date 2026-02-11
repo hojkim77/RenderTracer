@@ -1,0 +1,16 @@
+name = "react-visual-rendering-tracer-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# 환경 변수는 Cloudflare Dashboard에서 설정하거나
+# npx wrangler secret put <KEY> 명령으로 설정
+# 예: npx wrangler secret put SUPABASE_URL
+
+[env.production]
+name = "react-visual-rendering-tracer-api"
+
+[env.development]
+name = "react-visual-rendering-tracer-api-dev"
+

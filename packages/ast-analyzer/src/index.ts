@@ -1,0 +1,203 @@
+/**
+ * AST 분석 엔진
+ * Babel을 활용하여 React 컴포넌트 구조 분석
+ */
+
+import { parse } from '@babel/parser';
+import traverse, { type NodePath } from '@babel/traverse';
+import * as t from '@babel/types';
+import { GraphData, ComponentNode, ComponentEdge } from '@react-visual-rendering-tracer/shared-types';
+
+export interface ParseOptions {
+  sourceCode: string;
+  filePath: string;
+}
+
+export function parseReactComponents(options: ParseOptions): {
+  nodes: ComponentNode[];
+  edges: ComponentEdge[];
+} {
+  const { sourceCode, filePath } = options;
+  const nodes: ComponentNode[] = [];
+  const edges: ComponentEdge[] = [];
+
+  try {
+    const ast = parse(sourceCode, {
+      sourceType: 'module',
+      plugins: [
+        'jsx',
+        'typescript',
+        'decorators-legacy',
+        'classProperties',
+        'objectRestSpread',
+        'asyncGenerators',
+        'functionBind',
+        'exportDefaultFrom',
+        'exportNamespaceFrom',
+        'dynamicImport',
+        'nullishCoalescingOperator',
+        'optionalChaining',
+      ],
+    });
+
+    traverse(ast, {
+      // FunctionDeclaration 및 ArrowFunctionExpression에서 컴포넌트 찾기
+      FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
+        if (isReactComponent(path.node)) {
+          const node = extractComponentNode(path.node, filePath, sourceCode);
+          if (node) {
+            nodes.push(node);
+          }
+        }
+      },
+      VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
+        if (
+          path.node.init &&
+          (t.isArrowFunctionExpression(path.node.init) ||
+          t.isFunctionExpression(path.node.init))
+        ) {
+          if (isReactComponent(path.node.init)) {
+            const node = extractComponentNode(
+              path.node.init,
+              filePath,
+              sourceCode,
+              path.node.id && t.isIdentifier(path.node.id) ? path.node.id.name : undefined
+            );
+            if (node) {
+              nodes.push(node);
+            }
+          }
+        }
+      },
+    });
+  } catch (error: unknown) {
+    // eslint-disable-next-line no-console
+    if (error instanceof Error) {
+      // eslint-disable-next-line no-console
+      console.error('AST parsing error:', error.message);
+    }
+  }
+
+  return { nodes, edges };
+}
+
+function isReactComponent(node: t.Function | t.ArrowFunctionExpression): boolean {
+  // JSX를 반환하는 함수인지 확인
+  let hasJSX = false;
+
+  traverse(node as any, {
+    JSXElement(path: NodePath<t.JSXElement>) {
+      hasJSX = true;
+      path.stop();
+    },
+    JSXFragment(path: NodePath<t.JSXFragment>) {
+      hasJSX = true;
+      path.stop();
+    },
+  });
+
+  return hasJSX;
+}
+
+function extractComponentNode(
+  node: t.Function | t.ArrowFunctionExpression,
+  filePath: string,
+  sourceCode: string,
+  name?: string
+): ComponentNode | null {
+  // 컴포넌트 이름 추출
+  const componentName =
+    name ||
+    (t.isFunctionDeclaration(node) && t.isIdentifier(node.id)
+      ? node.id.name
+      : 'AnonymousComponent');
+
+  // Props 추출
+  const props: string[] = [];
+  if (node.params.length > 0 && t.isIdentifier(node.params[0])) {
+    // TODO: Props 타입에서 추출
+  }
+
+  // Hooks 추출
+  const hooks = {
+    useState: [] as string[],
+    useReducer: [] as string[],
+    useContext: [] as string[],
+  };
+
+  // React.memo, useCallback, useMemo 감지
+  let isMemoized = false;
+  let hasUseCallback = false;
+  let hasUseMemo = false;
+  let hasListRendering = false;
+  let hasConditionalRendering = false;
+
+  traverse(node as any, {
+    CallExpression(path: NodePath<t.CallExpression>) {
+      const callee = path.node.callee;
+      
+      if (t.isMemberExpression(callee) && t.isIdentifier(callee.object)) {
+        // React.memo 체크
+        if (
+          t.isIdentifier(callee.object, { name: 'React' }) &&
+          t.isIdentifier(callee.property, { name: 'memo' })
+        ) {
+          isMemoized = true;
+        }
+      }
+
+      if (t.isIdentifier(callee)) {
+        // Hooks 체크
+        if (callee.name === 'useState') {
+          // TODO: state 변수명 추출
+        } else if (callee.name === 'useReducer') {
+          // TODO: reducer 이름 추출
+        } else if (callee.name === 'useContext') {
+          // TODO: context 이름 추출
+        } else if (callee.name === 'useCallback') {
+          hasUseCallback = true;
+        } else if (callee.name === 'useMemo') {
+          hasUseMemo = true;
+        }
+      }
+
+      // .map() 체크 (리스트 렌더링)
+      if (
+        t.isMemberExpression(callee) &&
+        t.isIdentifier(callee.property, { name: 'map' })
+      ) {
+        hasListRendering = true;
+      }
+    },
+    ConditionalExpression() {
+      hasConditionalRendering = true;
+    },
+    LogicalExpression(path: NodePath<t.LogicalExpression>) {
+      if (path.node.operator === '&&' || path.node.operator === '||') {
+        hasConditionalRendering = true;
+      }
+    },
+  });
+
+  // 라인 번호 추출
+  const loc = node.loc;
+  const lineNumber = loc?.start.line || 0;
+  const columnNumber = loc?.start.column || 0;
+
+  return {
+    id: `${filePath}:${componentName}:${lineNumber}`,
+    type: 'component',
+    name: componentName,
+    filePath,
+    lineNumber,
+    columnNumber,
+    isMemoized,
+    hasUseCallback,
+    hasUseMemo,
+    hooks,
+    props,
+    hasListRendering,
+    hasConditionalRendering,
+  };
+}
+
