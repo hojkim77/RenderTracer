@@ -1,15 +1,36 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-4">
-          React Visual Fiber Tracer
-        </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400">
-          React 컴포넌트 구조 및 렌더링 전파 경로를 시각화하는 프로파일링 도구
-        </p>
-      </div>
-    </main>
-  );
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        // 로그인되어 있으면 대시보드로 리다이렉트
+        router.push('/dashboard');
+      } else {
+        // 로그인되어 있지 않으면 로그인 페이지로 리다이렉트
+        router.push('/login');
+      }
+    }
+  }, [user, loading, router]);
+
+  // 로딩 중이거나 리다이렉트 중일 때 표시할 내용
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <div className="text-center">
+          <p className="text-lg">로딩 중...</p>
+        </div>
+      </main>
+    );
+  }
+
+  return null; // 리다이렉트 중
 }
 
