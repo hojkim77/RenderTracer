@@ -15,74 +15,75 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
 
     async function initializeAuth() {
       try {
         // URL에서 세션 감지 (OAuth 콜백 후, detectSessionInUrl이 활성화되어 있음)
         // Supabase가 URL의 해시나 쿼리 파라미터에서 세션을 감지할 수 있음
         const { data: { session: urlSession }, error: urlError } = await supabase.auth.getSession();
-        
+
         if (urlSession && !urlError) {
           // URL에서 세션을 감지한 경우 토큰 저장
           saveTokensFromSession(urlSession);
-          if (mounted) {
-            setUser(urlSession.user);
-            setLoading(false);
-            return;
-          }
+          setUser(urlSession.user);
+          setLoading(false);
+          return;
         }
 
         // URL에 세션이 없으면 기존 RefreshToken으로 세션 복원 시도
         const refreshToken = getRefreshToken();
         if (refreshToken) {
+          // getSession()이 완료될 때까지 loading을 true로 유지
           const session = await getSession();
-          if (session && mounted) {
+          if (session) {
             setUser(session.user);
-            setLoading(false);
-            return;
+          } else {
+            setUser(null);
           }
+          setLoading(false);
+          return;
+
         }
 
-        // 세션이 없는 경우
-        if (mounted) {
-          setUser(null);
-          setLoading(false);
-        }
+        // RefreshToken도 없는 경우
+        setUser(null);
+        setLoading(false);
       } catch (error) {
         console.error('인증 초기화 실패:', error);
-        if (mounted) {
-          setUser(null);
-          setLoading(false);
-        }
+        setUser(null);
+        setLoading(false);
       }
     }
 
-    initializeAuth();
+    // 초기 로딩 상태 유지
+    setLoading(true);
 
-    // 인증 상태 변경 감지 (예: 로그인, 로그아웃)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        // 세션이 있으면 토큰 저장
-        saveTokensFromSession(session);
-        if (mounted) {
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    // 초기화 완료 후에만 onAuthStateChange 활성화
+    initializeAuth().then(() => {
+      // 초기화 완료 후 onAuthStateChange 구독 시작
+      const {
+        data: { subscription: sub },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+          // 세션이 있으면 토큰 저장
+          saveTokensFromSession(session);
           setUser(session.user);
           setLoading(false);
-        }
-      } else {
-        // 세션이 없으면 사용자 정보도 제거
-        if (mounted) {
+        } else {
           setUser(null);
           setLoading(false);
         }
-      }
+      });
+
+      subscription = sub;
     });
 
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
