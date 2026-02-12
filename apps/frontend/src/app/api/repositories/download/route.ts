@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerUser } from '@/lib/auth-server';
-import { downloadRepository } from '@/lib/github-service';
+import { getServerUser } from '@/lib/server/auth';
+import { downloadRepository } from '@/lib/services/github-service';
+import { arrayBufferToBase64 } from '@/lib/services/repository-service';
 
 /**
  * POST /api/repositories/download
@@ -40,12 +41,7 @@ export async function POST(request: NextRequest) {
     );
 
     // ArrayBuffer를 base64로 인코딩
-    const bytes = new Uint8Array(zipBuffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64ZipBuffer = btoa(binary);
+    const base64ZipBuffer = arrayBufferToBase64(zipBuffer);
 
     return NextResponse.json({ zipBuffer: base64ZipBuffer });
   } catch (error) {

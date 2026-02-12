@@ -21,6 +21,9 @@ async function getGitHubToken(supabase: SupabaseClient, userId: string): Promise
   return data.token;
 }
 
+/**
+ * 사용자의 GitHub 레포지토리 목록 조회
+ */
 export async function getGitHubRepositories(
   supabase: SupabaseClient,
   userId: string
@@ -54,6 +57,9 @@ export async function getGitHubRepositories(
   }
 }
 
+/**
+ * GitHub에서 레포지토리 zip 파일 다운로드
+ */
 export async function downloadRepository(
   supabase: SupabaseClient,
   userId: string,
@@ -79,7 +85,9 @@ export async function downloadRepository(
     return data as ArrayBuffer;
   } catch (error) {
     console.error('Failed to download repository:', error);
-    throw new Error(`Failed to download repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to download repository: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 

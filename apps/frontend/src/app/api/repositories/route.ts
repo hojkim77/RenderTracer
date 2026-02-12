@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerUser } from '@/lib/auth-server';
-import { getGitHubRepositories } from '@/lib/github-service';
+import { getServerUser } from '@/lib/server/auth';
+import { getGitHubRepositories } from '@/lib/services/github-service';
 
 /**
  * GET /api/repositories
