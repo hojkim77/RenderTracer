@@ -1,6 +1,6 @@
 import { getValidAccessToken } from './auth';
 
-const API_URL = process.env.WORKERS_API_URL || process.env.NEXT_PUBLIC_APP_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_APP_URL || '';
 
 export async function apiClient(
   endpoint: string,
@@ -8,9 +8,9 @@ export async function apiClient(
 ): Promise<Response> {
   const token = await getValidAccessToken();
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> || {}),
   };
 
   if (token) {
@@ -32,11 +32,11 @@ export async function apiClient(
 
 export async function apiGet<T = any>(endpoint: string): Promise<T> {
   const response = await apiClient(endpoint, { method: 'GET' });
-  
+
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -45,11 +45,11 @@ export async function apiPost<T = any>(endpoint: string, data?: any): Promise<T>
     method: 'POST',
     body: data ? JSON.stringify(data) : undefined,
   });
-  
+
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
@@ -58,21 +58,21 @@ export async function apiPut<T = any>(endpoint: string, data?: any): Promise<T> 
     method: 'PUT',
     body: data ? JSON.stringify(data) : undefined,
   });
-  
+
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
 export async function apiDelete<T = any>(endpoint: string): Promise<T> {
   const response = await apiClient(endpoint, { method: 'DELETE' });
-  
+
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
