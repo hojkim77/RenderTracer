@@ -22,6 +22,34 @@ async function getGitHubToken(supabase: SupabaseClient, userId: string): Promise
 }
 
 /**
+ * GitHub 토큰 저장
+ */
+export async function saveGitHubToken(supabase: SupabaseClient, userId: string, token: string) {
+  if (token && userId) {
+    try {
+      const { error: tokenError } = await supabase
+        .from('user_github_tokens')
+        .upsert({
+          user_id: userId,
+          token: token,
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (tokenError) {
+        console.error('GitHub 토큰 저장 실패:', tokenError);
+        // 토큰 저장 실패해도 로그인은 진행
+      } else {
+        console.log('GitHub 토큰 저장 성공');
+      }
+    } catch (tokenErr) {
+      console.error('GitHub 토큰 저장 중 오류:', tokenErr);
+    }
+  } else {
+    console.warn('GitHub provider_token이 없습니다.');
+  }
+}
+/**
  * 사용자의 GitHub 레포지토리 목록 조회
  */
 export async function getGitHubRepositories(
